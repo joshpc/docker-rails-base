@@ -1,0 +1,26 @@
+name: Build images
+on: push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Build builder image
+        working-directory: ./Builder
+        run: docker build -t builder .
+
+      - name: Build final image
+        working-directory: ./Final
+        run: docker build -t final .
+
+      - name: Push the images to GitHub Package Registry
+        if: github.ref == 'refs/heads/master'
+        run: |
+          docker login docker.pkg.github.com -u $GITHUB_ACTOR -p ${{ secrets.PACKAGES_TOKEN }}
+          docker tag builder docker.pkg.github.com/$GITHUB_ACTOR/docker-rails-base/rails-base-builder:latest
+          docker push docker.pkg.github.com/$GITHUB_ACTOR/docker-rails-base/rails-base-builder:latest
+          docker tag final docker.pkg.github.com/$GITHUB_ACTOR/docker-rails-base/rails-base-final:latest
+          docker push docker.pkg.github.com/$GITHUB_ACTOR/docker-rails-base/rails-base-final:latest
