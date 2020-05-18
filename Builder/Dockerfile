@@ -1,5 +1,6 @@
 FROM ruby:2.6.6-alpine
-LABEL maintainer="georg@ledermann.dev"
+# The original maintainer is georg@ledermann.dev and this is a small fork/modification
+LABEL maintainer="joshpc@gmail.com"
 
 # Add basic packages
 RUN apk add --update --no-cache \
@@ -18,6 +19,8 @@ COPY package.json yarn.lock /app/
 RUN yarn install --frozen-lockfile
 
 # Install standard gems
+RUN gem install bundler
+
 COPY Gemfile* /app/
 RUN bundle config --local frozen 1 && \
     bundle config --local build.sassc --disable-march-tune-native && \
