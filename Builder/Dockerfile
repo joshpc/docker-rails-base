@@ -2,6 +2,8 @@ FROM ruby:2.6.6-alpine
 # The original maintainer is georg@ledermann.dev and this is a small fork/modification
 LABEL maintainer="joshpc@gmail.com"
 
+ARG excluded='development test'
+
 # Add basic packages
 RUN apk add --update --no-cache \
       build-base \
@@ -30,14 +32,15 @@ RUN bundle config --local frozen 1 && \
 
 # Install Ruby gems (for production only)
 ONBUILD COPY Gemfile* /app/
-# ONBUILD RUN bundle config --local without '' && \
-#             bundle install -j4 --retry 3 && \
-#             # Remove unneeded gems
-#             bundle clean --force && \
-#             # Remove unneeded files from installed gems (cached *.gem, *.o, *.c)
-#             rm -rf /usr/local/bundle/cache/*.gem && \
-#             find /usr/local/bundle/gems/ -name "*.c" -delete && \
-#             find /usr/local/bundle/gems/ -name "*.o" -delete
+ONBUILD RUN bundle config --local without $excluded && \
+            bundle install -j4 --retry 3 && \
+            # Remove unneeded gems
+            bundle clean --force && \
+            # Remove unneeded files from installed gems (cached *.gem, *.o, *.c)
+            rm -rf /usr/local/bundle/cache/*.gem && \
+            find /usr/local/bundle/gems/ -name "*.c" -delete && \
+            find /usr/local/bundle/gems/ -name "*.o" -delete
+
 ONBUILD RUN bundle install -j4 --retry 3 && \
             # Remove unneeded gems
             bundle clean --force && \
@@ -59,7 +62,7 @@ ONBUILD COPY . /app
 #      we hide the credentials while compiling assets (by renaming them before and after)
 #
 ONBUILD RUN mv config/credentials.yml.enc config/credentials.yml.enc.bak 2>/dev/null || true
-ONBUILD RUN RAILS_ENV=production \
+ONBUILD RUN RAILS_ENV=$rails_env \
             SECRET_KEY_BASE=dummy \
             RAILS_MASTER_KEY=dummy \
             bundle exec rails assets:precompile
