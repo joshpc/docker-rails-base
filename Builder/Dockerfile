@@ -2,7 +2,11 @@ FROM ruby:2.6.6-alpine
 # The original maintainer is georg@ledermann.dev and this is a small fork/modification
 LABEL maintainer="joshpc@gmail.com"
 
+ARG rails_env='production'
 ARG excluded='development test'
+
+RUN echo !! excluding: $excluded
+RUN echo !! rails env: $rails_env
 
 # Add basic packages
 RUN apk add --update --no-cache \
