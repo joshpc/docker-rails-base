@@ -1,12 +1,6 @@
 FROM ruby:2.6.6-alpine
-# The original maintainer is georg@ledermann.dev and this is a small fork/modification
+# The original maintainer is georg@ledermann.dev and this is a small fork/modification so we can use this in development for now
 LABEL maintainer="joshpc@gmail.com"
-
-ARG rails_env='production'
-ARG excluded='development test'
-
-RUN echo !! excluding: $excluded
-RUN echo !! rails env: $rails_env
 
 # Add basic packages
 RUN apk add --update --no-cache \
@@ -28,30 +22,31 @@ RUN yarn install --frozen-lockfile
 RUN gem install bundler
 
 COPY Gemfile* /app/
-RUN bundle config --local frozen 1 && \
-    bundle config --local build.sassc --disable-march-tune-native && \
-    bundle install -j4 --retry 3
+# RUN bundle config --local frozen 1 && \
+#     bundle config --local build.sassc --disable-march-tune-native && \
+#     bundle install -j4 --retry 3
 
 #### ONBUILD: Add triggers to the image, executed later while building a child image
 
 # Install Ruby gems (for production only)
 ONBUILD COPY Gemfile* /app/
-ONBUILD RUN bundle config --local without $excluded && \
-            bundle install -j4 --retry 3 && \
-            # Remove unneeded gems
-            bundle clean --force && \
-            # Remove unneeded files from installed gems (cached *.gem, *.o, *.c)
-            rm -rf /usr/local/bundle/cache/*.gem && \
-            find /usr/local/bundle/gems/ -name "*.c" -delete && \
-            find /usr/local/bundle/gems/ -name "*.o" -delete
+ONBUILD RUN bundle install
+# ONBUILD RUN bundle config --local without $excluded && \
+#             bundle install -j4 --retry 3 && \
+#             # Remove unneeded gems
+#             bundle clean --force && \
+#             # Remove unneeded files from installed gems (cached *.gem, *.o, *.c)
+#             rm -rf /usr/local/bundle/cache/*.gem && \
+#             find /usr/local/bundle/gems/ -name "*.c" -delete && \
+#             find /usr/local/bundle/gems/ -name "*.o" -delete
 
-ONBUILD RUN bundle install -j4 --retry 3 && \
-            # Remove unneeded gems
-            bundle clean --force && \
-            # Remove unneeded files from installed gems (cached *.gem, *.o, *.c)
-            rm -rf /usr/local/bundle/cache/*.gem && \
-            find /usr/local/bundle/gems/ -name "*.c" -delete && \
-            find /usr/local/bundle/gems/ -name "*.o" -delete
+# ONBUILD RUN bundle install -j4 --retry 3 && \
+#             # Remove unneeded gems
+#             bundle clean --force && \
+#             # Remove unneeded files from installed gems (cached *.gem, *.o, *.c)
+#             rm -rf /usr/local/bundle/cache/*.gem && \
+#             find /usr/local/bundle/gems/ -name "*.c" -delete && \
+#             find /usr/local/bundle/gems/ -name "*.o" -delete
 
 # Copy the whole application folder into the image
 ONBUILD COPY . /app
@@ -72,5 +67,3 @@ ONBUILD RUN RAILS_ENV=$rails_env \
             bundle exec rails assets:precompile
 ONBUILD RUN mv config/credentials.yml.enc.bak config/credentials.yml.enc 2>/dev/null || true
 
-# Remove folders not needed in resulting image
-ONBUILD RUN rm -rf node_modules tmp/cache vendor/bundle test spec
